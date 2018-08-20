@@ -36,14 +36,6 @@ demo_result = []
 
 # CLASSES = ('__background__',
 #            'aeroplane', 'bicycle', 'bird', 'boat',
-#            'bottle', 'bus', 'car', 'cat',
-#            'cow', 'diningtable', 'dog', 'fan',
-#            'motorbike', 'person', 'pottedplant',
-#            'sheep', 'sofa', 'train', 'tvmonitor',
-#            'sweepingrobot', 'box', 'dehumidifier',
-#            'horse')
-# CLASSES = ('__background__',
-#            'aeroplane', 'bicycle', 'bird', 'boat',
 #            'bottle', 'bus', 'car', 'cat', 'chair',
 #            'cow', 'diningtable', 'dog', 'horse',
 #            'motorbike', 'person', 'pottedplant',
@@ -55,9 +47,6 @@ CLASSES = ('__background__',
 
 
 # filter impossible classes
-# FILTERED_CLASSES = ('__background__',
-#            'bottle', 'chair', 'diningtable',
-#            'person', 'sofa', 'tvmonitor', 'fan')
 FILTERED_CLASSES = CLASSES
 
 # NETS = {'vgg16': ('vgg16_faster_rcnn_iter_70000.ckpt',),'res101': ('res101_faster_rcnn_iter_110000.ckpt',)}
