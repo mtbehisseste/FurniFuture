@@ -26,8 +26,8 @@ y = 0.000
 '''
 px = [0.000]  # array to store the input x coordinate when initialize 
 py = [0.000]  # array to store the input y coordinate when initialize
-rx = [0.000, 60.000, 0.000]  # 初始化的3個點的真實x座標（比例尺）
-ry = [0.000, 0.000, 60.000]  # 初始化的3個點的真實y座標（比例尺）
+rx = [0.000, 4.000, 0.000]  # 初始化的3個點的真實x座標（比例尺）
+ry = [0.000, 0.000, 4.000]  # 初始化的3個點的真實y座標（比例尺）
 t = 0
 tx1, ty1, tx2, ty2, sx1, sy1, sx2, sy2 = 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000
 solx, soly = 0.000, 0.000
@@ -53,8 +53,10 @@ class ReceiveThread(threading.Thread):
             # initialize the coordinate
             cv2.namedWindow('image')
             cv2.setMouseCallback('image', self.draw_circle)
+            # self.img = cv2.imread('tmpdemo.jpg')
             while(1):
                 cv2.imshow('image', self.rframe)
+                # cv2.imshow('image', self.img)
                 k = cv2.waitKey(1)
                 if co == 3:
                     cv2.destroyAllWindows()
@@ -123,7 +125,7 @@ class ReceiveThread(threading.Thread):
                                     origin = self.four(320, 480)  # calculate coordinate of (320,480)     
                                     realxy = self.four(int(float(result_list[index+1])), int(float(result_list[index+2])))
                                     objdis = self.distance(realxy[0], realxy[1], origin[0], origin[1])
-                                    step = math.ceil(objdis / 50)
+                                    step = math.ceil(objdis / 4)
 
                                     # sample:椅子大約在你的左前方五步 並在導盲杖可觸及的範圍內
                                     self.cs.send(self.translateEtoC(self.obj).encode('utf-8'))    
@@ -170,6 +172,7 @@ class ReceiveThread(threading.Thread):
         if event == cv2.EVENT_LBUTTONDOWN:
             ix, iy = x, y
             cv2.rectangle(self.rframe, (ix, iy), (x, y), (0, 255, 0), 4)
+            # cv2.rectangle(self.img, (ix, iy), (x, y), (0, 255, 0), 4)
             px.append(ix)
             py.append(iy)
             co = co+1
