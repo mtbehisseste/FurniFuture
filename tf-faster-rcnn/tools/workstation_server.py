@@ -10,8 +10,7 @@ import sys
 
 # sys.path.append('./tools')
 # import demo
-# host='140.115.52.195'
-host = '192.168.1.2'
+host = '192.168.0.107'
 # host = '192.168.0.106'
 port = 8888
 address = (host, port)
