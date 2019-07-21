@@ -59,50 +59,50 @@ FILTERED_CLASSES = ('__background__', 'chair',
 # NETS = {'vgg16': ('vgg16_faster_rcnn_iter_70000.ckpt',),'res101': ('res101_faster_rcnn_iter_110000.ckpt',)}
 # DATASETS= {'pascal_voc': ('voc_2007_trainval',),'pascal_voc_0712': ('voc_2007_trainval+voc_2012_trainval',)}
 NETS = {'vgg16': ('vgg16_faster_rcnn_iter_70000.ckpt',),'res101': ('res101_faster_rcnn_iter_100000.ckpt',)}
-DATASETS= {'pascal_voc': ('voc_2007_trainval',),'pascal_voc_0712': ('voc_2007_trainval',)}
+DATASETS = {'pascal_voc': ('voc_2007_trainval',), 'pascal_voc_0712': ('voc_2007_trainval',)}
 
-def vis_detections(im, class_name, dets, thresh=0.5):
-    """Draw detected bounding boxes."""
-    inds = np.where(dets[:, -1] >= thresh)[0]
-    if len(inds) == 0:
-        return
+# def vis_detections(im, class_name, dets, thresh=0.5):
+#     """Draw detected bounding boxes."""
+#     inds = np.where(dets[:, -1] >= thresh)[0]
+#     if len(inds) == 0:
+#         return
 
-    if class_name in FILTERED_CLASSES:  # filtered objects
-        print('obj: ', class_name)
-        im = im[:, :, (2, 1, 0)]
-        fig, ax = plt.subplots(figsize=(6.66, 5))
-        ax.imshow(im, aspect='equal')
-        for i in inds:
-            bbox = dets[i, :4]
-            score = dets[i, -1]
+#     if class_name in FILTERED_CLASSES:  # filtered objects
+#         print('obj: ', class_name)
+#         im = im[:, :, (2, 1, 0)]
+#         fig, ax = plt.subplots(figsize=(6.66, 5))
+#         ax.imshow(im, aspect='equal')
+#         for i in inds:
+#             bbox = dets[i, :4]
+#             score = dets[i, -1]
 
-            w = (bbox[2] - bbox[0]) / 2
-            h = (bbox[3] - bbox[1])
-            if class_name == 'diningtable':
-                result_obj = [class_name, bbox[0] + w, bbox[1] + h, w, h]
-            else:
-                result_obj = [class_name, bbox[0] + w, bbox[1] + h]
-            demo_result.append(result_obj)
+#             w = (bbox[2] - bbox[0]) / 2
+#             h = (bbox[3] - bbox[1])
+#             if class_name == 'diningtable':
+#                 result_obj = [class_name, bbox[0] + w, bbox[1] + h, w, h]
+#             else:
+#                 result_obj = [class_name, bbox[0] + w, bbox[1] + h]
+#             demo_result.append(result_obj)
           
-            ax.add_patch(
-                plt.Rectangle((bbox[0], bbox[1]),
-                            bbox[2] - bbox[0],
-                            bbox[3] - bbox[1], fill=False,
-                            edgecolor='red', linewidth=3.5)
-                )
-            ax.text(bbox[0], bbox[1] - 2,
-                  '{:s} {:.3f}'.format(class_name, score),
-                       bbox=dict(facecolor='blue', alpha=0.5),
-                       fontsize=14, color='white')
-                       
-        ax.set_title(('{} detections with '
-                    'p({} | box) >= {:.1f}').format(class_name, class_name,
-                                                    thresh),
-                    fontsize=14)
-        # plt.axis('off')
-        plt.tight_layout()
-        plt.draw()
-        fig.savefig('{}_output_fig.jpg'.format(class_name))
+#             ax.add_patch(
+#                 plt.Rectangle((bbox[0], bbox[1]),
+#                             bbox[2] - bbox[0],
+#                             bbox[3] - bbox[1], fill=False,
+#                             edgecolor='red', linewidth=3.5)
+#                 )
+#             ax.text(bbox[0], bbox[1] - 2,
+#                   '{:s} {:.3f}'.format(class_name, score),
+#                        bbox=dict(facecolor='blue', alpha=0.5),
+#                        fontsize=14, color='white')
+
+#         ax.set_title(('{} detections with '
+#                     'p({} | box) >= {:.1f}').format(class_name, class_name,
+#                                                     thresh),
+#                     fontsize=14)
+#         # plt.axis('off')
+#         plt.tight_layout()
+#         plt.draw()
+#         fig.savefig('{}_output_fig.jpg'.format(class_name))
 
 def demo(sess, net, image_name):
     """Detect object classes in an image using pre-computed object proposals."""
@@ -121,6 +121,11 @@ def demo(sess, net, image_name):
     # Visualize detections for each class
     CONF_THRESH = 0.8
     NMS_THRESH = 0.3
+    
+    im = im[:, :, (2, 1, 0)]
+    fig, ax = plt.subplots(figsize=(6.66, 5))
+    ax.imshow(im, aspect='equal')
+    
     for cls_ind, cls in enumerate(CLASSES[1:]):
         cls_ind += 1 # because we skipped background
         cls_boxes = boxes[:, 4*cls_ind:4*(cls_ind + 1)]
@@ -129,7 +134,46 @@ def demo(sess, net, image_name):
                           cls_scores[:, np.newaxis])).astype(np.float32)
         keep = nms(dets, NMS_THRESH)
         dets = dets[keep, :]
-        vis_detections(im, cls, dets, thresh=CONF_THRESH)
+        #  vis_detections(im, cls, dets, thresh=CONF_THRESH)
+        
+        #  added for display all bboxes in one picture (origin vis_detections() code)    
+        inds = np.where(dets[:, -1] >= CONF_THRESH)[0]        
+        if len(inds) == 0:
+            continue
+
+        if cls in FILTERED_CLASSES:  # filtered objects
+            print('obj: ', cls)
+            for i in inds:
+                bbox = dets[i, :4]
+                score = dets[i, -1]
+
+                w = (bbox[2] - bbox[0]) / 2
+                h = (bbox[3] - bbox[1])
+                if cls == 'diningtable':
+                    result_obj = [cls, bbox[0] + w, bbox[1] + h, w, h]
+                else:
+                    result_obj = [cls, bbox[0] + w, bbox[1] + h]
+                demo_result.append(result_obj)
+            
+                ax.add_patch(
+                    plt.Rectangle((bbox[0], bbox[1]),
+                                bbox[2] - bbox[0],
+                                bbox[3] - bbox[1], fill=False,
+                                edgecolor='red', linewidth=3.5)
+                    )
+                ax.text(bbox[0], bbox[1] - 2,
+                    '{:s} {:.3f}'.format(cls, score),
+                        bbox=dict(facecolor='blue', alpha=0.5),
+                        fontsize=14, color='white')
+
+            # ax.set_title('All detections with threshold >= {:.1f}'.format(CONF_THRESH), fontsize=14)
+            plt.axis('off')
+            plt.tight_layout()
+            # plt.draw()
+            # fig.savefig('{}_output_fig.jpg'.format(cls))
+    plt.savefig('./result/demo_' + image_name)
+    print('Saved to `{}`'.format(os.path.join(os.getcwd(), 'result/demo_' + image_name)))
+            
 
     print ('demo.py result: ', demo_result)
 
