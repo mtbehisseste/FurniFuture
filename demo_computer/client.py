@@ -23,7 +23,7 @@ import os
 import time
 import Server_Socket
 
-host = '140.115.52.195'
+host = '140.115.51.190'
 # host = '192.168.0.107'
 port = 8888
 
@@ -37,6 +37,7 @@ class client_socket:
 
     def create(self, img, isFirst):
         create_result = self.socksock(self.address, self.cs_send, self.cs_recv, img)
+        # print('create_result:', create_result)
         tmp = create_result.split('\n')
         if isFirst:
             for x in tmp:
@@ -63,8 +64,8 @@ class client_socket:
         print('Finish sending image output.jpg')
 
         cs_recv.connect(address)
-        result = cs_recv.recv(1024)
-        # print('received from server: ' + result.decode())
+        result = cs_recv.recv(4096)
+        print('received from server: ' + result.decode())
         cs_recv.close()
 
         return result.decode()

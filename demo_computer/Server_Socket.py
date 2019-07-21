@@ -12,7 +12,7 @@ import client
 TCP_IP = ''
 TCP_PORT = 1234
 send_msg = ''
-camera_port = 1
+camera_port = 0
 rec_result = ''
 
 co = 0  # counter of points by mouse when initialize the coordinate
@@ -53,7 +53,7 @@ class ReceiveThread(threading.Thread):
             # initialize the coordinate
             cv2.namedWindow('image')
             cv2.setMouseCallback('image', self.draw_circle)
-            # self.img = cv2.imread('tmpdemo.jpg')
+            self.img = cv2.imread('tmpdemo.jpg')
             while(1):
                 cv2.imshow('image', self.rframe)
                 # cv2.imshow('image', self.img)
@@ -75,6 +75,8 @@ class ReceiveThread(threading.Thread):
                 if self.validCommand(self.recv_msg.decode('utf-8')) > 0:
                     if self.validCommand(self.recv_msg.decode('utf-8')) != 3:
                         self.cs.send('正在進行辨識\n'.encode('utf-8'))
+                    else:
+                        self.cs.send('正在紀錄傢俱位置\n'.encode('utf-8'))
 
                     if os.path.isfile('./output.jpg'):
                         os.system('rm output.jpg')
@@ -139,25 +141,122 @@ class ReceiveThread(threading.Thread):
                                     self.cs.send('沒有'.encode('utf-8'))
                                     self.cs.send(self.translateEtoC(self.obj).encode('utf-8'))
                                     self.cs.send('的辨識結果\n'.encode('utf-8'))
+
                         elif self.validCommand(self.recv_msg.decode('utf-8')) == 3:  # 紀錄家具位置
                             self.cs.send('傢俱位置紀錄完畢\n'.encode('utf-8'))
 
+                        elif self.validCommand(self.recv_msg.decode('utf-8')) == 4:  # 我想找XX
+                            print(result_list)
+                            if not 'diningtable' in result_list or not 'person' in result_list:
+                                self.cs.send('沒有桌子的辨識結果或無法定位您的位置\n'.encode('utf-8'))
+                            else:
+                                if not self.obj in result_list:
+                                    self.cs.send('沒有'.encode('utf-8'))
+                                    self.cs.send(self.translateEtoC(self.obj).encode('utf-8'))
+                                    self.cs.send('的辨識結果\n'.encode('utf-8'))
+                                else:  #  person and table detected
+                                    ''' (If person is at the other side of the table, change the direction.)
+                                          | p | (faceing down)
+                                    -----------------
+                                    | 1 | 2 | 3 | 4 |  
+                                    +---+---+---+---+
+                                    | 5 | 6 | 7 | 8 |  
+                                    -----------------
+                                    '''
+                                    table_index = result_list.index('diningtable')
+                                    person_index = result_list.index('person')
+                                    obj_index = result_list.index(self.obj)
+
+                                    table_x = int(float(result_list[table_index + 1]))
+                                    table_y = int(float(result_list[table_index + 2]))
+                                    person_y = int(float(result_list[person_index + 2]))
+                                    obj_x = int(float(result_list[obj_index + 1]))
+                                    obj_y = int(float(result_list[obj_index +2]))
+                                    w = int(float(result_list[table_index + 3]))
+                                    h = int(float(result_list[table_index + 4]))
+
+                                    if table_y >= person_y:  # person is in back of the table (facing the camera)
+                                        if obj_y >= table_y - h and obj_y <= table_y - h/2 and obj_x >= table_x - w and obj_x <= table_x + w:
+                                        # object is between person and up half of the table on the image
+                                            if obj_x >= table_x + w/2 and obj_x <= table_x + w:
+                                            # object is at position 4
+                                                self.cs.send(self.translateEtoC(self.obj).encode('utf-8'))
+                                                self.cs.send('在你面對桌子上的左手邊\n'.encode('utf-8'))
+                                            elif obj_x <= table_x - w/2 and obj_x >= table_x - w:
+                                            # object is at position 1
+                                                self.cs.send(self.translateEtoC(self.obj).encode('utf-8'))
+                                                self.cs.send('在你面對桌子上的右手邊\n'.encode('utf-8'))
+                                            else:
+                                            # object is at position 2 or 3
+                                                self.cs.send(self.translateEtoC(self.obj).encode('utf-8'))
+                                                self.cs.send('在你面對桌子上的前方\n'.encode('utf-8'))
+                                        elif obj_y >= table_y - h/2 and obj_y <= table_y and obj_x >= table_x - w and obj_x <= table_x + w:
+                                        # object is at down half of the table on the image
+                                            if obj_x >= table_x + w/2 and obj_x <= table_x + w:
+                                            # object is at position 8
+                                                self.cs.send(self.translateEtoC(self.obj).encode('utf-8'))
+                                                self.cs.send('在你面對桌子上的左前方\n'.encode('utf-8'))
+                                            elif obj_x <= table_x - w/2 and obj_x >= table_x - w:
+                                            # object is at position 5
+                                                self.cs.send(self.translateEtoC(self.obj).encode('utf-8'))
+                                                self.cs.send('在你面對桌子上的右前方\n'.encode('utf-8'))
+                                            else:
+                                            # object is at position 2 or 3
+                                                self.cs.send(self.translateEtoC(self.obj).encode('utf-8'))
+                                                self.cs.send('在你面對桌子上的前方\n'.encode('utf-8'))
+                                        else:
+                                        # object is not in the range of table
+                                            self.cs.send(self.translateEtoC(self.obj).encode('utf-8'))
+                                            self.cs.send('不在桌子上，請使用另一指令\n'.encode('utf-8'))
+
+                                    else:  # person is in front of the table (not facing the camera)
+                                        if obj_y >= table_y - h/2 and obj_y <= table_y and obj_x >= table_x - w and obj_x <= table_x + w:
+                                            if obj_x >= table_x + w/2 and obj_x <= table_x + w:
+                                            # position 8
+                                                self.cs.send(self.translateEtoC(self.obj).encode('utf-8'))
+                                                self.cs.send('在你面對桌子上的右手邊\n'.encode('utf-8'))
+                                            elif obj_x <= table_x - w/2 and obj_x >= table_x - w:
+                                            # position 5
+                                                self.cs.send(self.translateEtoC(self.obj).encode('utf-8'))
+                                                self.cs.send('在你面對桌子上的左手邊\n'.encode('utf-8'))
+                                            else:
+                                                self.cs.send(self.translateEtoC(self.obj).encode('utf-8'))
+                                                self.cs.send('在你面對桌子上的前方\n'.encode('utf-8'))
+                                        elif obj_y >= table_y - h and obj_y <= table_y - h/2 and obj_x >= table_x - w and obj_x <= table_x + w:
+                                            if obj_x >= table_x + w/2 and obj_x <= table_x + w:
+                                            # position 4
+                                                self.cs.send(self.translateEtoC(self.obj).encode('utf-8'))
+                                                self.cs.send('在你面對桌子上的右前方\n'.encode('utf-8'))
+                                            elif obj_x <= table_x - w/2 and obj_x >= table_x - w:
+                                            # position 1
+                                                self.cs.send(self.translateEtoC(self.obj).encode('utf-8'))
+                                                self.cs.send('在你面對桌子上的左前方\n'.encode('utf-8'))
+                                            else:
+                                                self.cs.send(self.translateEtoC(self.obj).encode('utf-8'))
+                                                self.cs.send('在你面對桌子上的前方\n'.encode('utf-8'))
+                                        else:
+                                            self.cs.send(self.translateEtoC(self.obj).encode('utf-8'))
+                                            self.cs.send('不在桌子上，請使用另一指令\n'.encode('utf-8'))
+                                     
                     # update before_pos[]
                     rl = 0
-                    while (rl+1) * 3 <= len(result_list):
+                    while rl + 3 <= len(result_list):
                         same = False
-                        for bp in before_pos:
-                            if result_list[rl*3] == bp[0]:
+                        for bp in before_pos:  # every obj in result_list is compared with whole before_pos list
+                            if result_list[rl] == bp[0]:
                                 same = True
-                                bp[1] = result_list[rl*3+1]
-                                bp[2] = result_list[rl*3+2]
-                        if not same:
+                                bp[1] = result_list[rl+1]
+                                bp[2] = result_list[rl+2]
+                        if not same:  # new detected object
                             tmp = []
-                            tmp.append(result_list[rl*3])
-                            tmp.append(result_list[rl*3+1])
-                            tmp.append(result_list[rl*3+2])
+                            tmp.append(result_list[rl])
+                            tmp.append(result_list[rl+1])
+                            tmp.append(result_list[rl+2])
                             before_pos.append(tmp)
-                        rl += 1 
+                              
+                        if result_list[rl] == 'diningtable':  # skip h and w
+                            rl += 2
+                        rl += 3 
                     print('updated object: ', before_pos, '\n')
                         
                 else:
@@ -251,25 +350,31 @@ class ReceiveThread(threading.Thread):
         return int(tot_dis)
 
     def translateEtoC(self, s):
-        if s == 'fan':
-            return '電風扇'
+        if s == 'box':
+            return '箱子'
         elif s == 'chair':
             return '椅子'
-        elif s == 'diningtable':
-            return '桌子'
-        elif s == 'box':
-            return '箱子'
         elif s == 'dehumidifier':
             return '除溼機'
+        elif s == 'diningtable':
+            return '桌子'
+        elif s == 'fan':
+            return '電風扇'
+        elif s == 'mug':
+            return '杯子'
+        elif s == 'person':
+            return '人'
+        elif s == 'sun glasses':
+            return '墨鏡'
         elif s == 'sweepingrobot':
-            return '掃地機器人'
+            return '掃地機器人'  
         else:
             return s
     
     def translateCtoE(self, s):
         if s == '電風扇' or s == '電扇':
             return 'fan'
-        elif s == '椅子' or s == '一直':
+        elif s == '椅子':
             return 'chair'
         elif s == '桌子':
             return 'diningtable'
@@ -279,6 +384,12 @@ class ReceiveThread(threading.Thread):
             return 'dehumidifier'
         elif s == '掃地機器人':
             return 'sweepingrobot'
+        elif s == '人':
+            return 'person'
+        elif s == '墨鏡':
+            return 'sun glasses'
+        elif s == '杯子':
+            return 'mug'            
         else:
             return s
 
@@ -293,6 +404,10 @@ class ReceiveThread(threading.Thread):
             return 2
         elif s == '記錄家具位置':
             return 3
+        elif s[0:3] == '我想找':
+            self.obj = s[3:]
+            self.obj = self.translateCtoE(self.obj)
+            return 4
         else:
             return 0
 
@@ -324,9 +439,10 @@ class Socket:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((TCP_IP, TCP_PORT))
-        self.sock.listen(1)
+        print('host and port: ', TCP_IP, TCP_PORT)
+        self.sock.listen(5)
         count = 0
-        print('Wait for connection...')
+        print('Waiting for connection...')
         while True:
             self.s, addr = self.sock.accept()
             print('~~~~~~~~~~~~~~~~~~~~~~~~~~')
